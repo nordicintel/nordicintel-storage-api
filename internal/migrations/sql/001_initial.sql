@@ -1,9 +1,3 @@
--- Target Database Schema
--- PostgreSQL 15+ target DDL for the redesigned storage service.
--- This file is an executable schema specification, not a migration.
-
-begin;
-
 create schema storage;
 
 comment on schema storage is
@@ -13,7 +7,6 @@ create table storage.providers (
     provider_id bigint generated always as identity,
     provider_code text not null,
     provider_key text collate "C" not null,
-
     constraint providers_pkey primary key (provider_id),
     constraint providers_code_not_empty check (provider_code <> ''),
     constraint providers_key_not_empty check (provider_key <> ''),
@@ -39,20 +32,16 @@ create table storage.datasets (
     valued_cell_count bigint not null,
     null_cell_count bigint generated always as (cell_count - valued_cell_count) stored,
     updated_at timestamp with time zone not null,
-
     constraint datasets_pkey primary key (dataset_id),
-    constraint datasets_provider_fkey
-        foreign key (provider_id)
-        references storage.providers (provider_id)
-        on delete restrict,
+    constraint datasets_provider_fkey foreign key (provider_id)
+        references storage.providers (provider_id) on delete restrict,
     constraint datasets_code_not_empty check (dataset_code <> ''),
     constraint datasets_key_not_empty check (dataset_key <> ''),
     constraint datasets_code_length check (octet_length(dataset_code) between 1 and 256),
     constraint datasets_key_length check (octet_length(dataset_key) between 1 and 256),
     constraint datasets_identity_unique unique (provider_id, dataset_key),
     constraint datasets_cell_count_range check (cell_count between 1 and 1000000),
-    constraint datasets_valued_cell_count_range
-        check (valued_cell_count between 0 and cell_count)
+    constraint datasets_valued_cell_count_range check (valued_cell_count between 0 and cell_count)
 );
 
 comment on table storage.datasets is
@@ -78,12 +67,9 @@ create table storage.dimensions (
     dimension_code text not null,
     dimension_key text collate "C" not null,
     position integer not null,
-
     constraint dimensions_pkey primary key (dimension_id),
-    constraint dimensions_dataset_fkey
-        foreign key (dataset_id)
-        references storage.datasets (dataset_id)
-        on delete cascade,
+    constraint dimensions_dataset_fkey foreign key (dataset_id)
+        references storage.datasets (dataset_id) on delete cascade,
     constraint dimensions_code_not_empty check (dimension_code <> ''),
     constraint dimensions_key_not_empty check (dimension_key <> ''),
     constraint dimensions_code_length check (octet_length(dimension_code) between 1 and 256),
@@ -108,12 +94,9 @@ create table storage.categories (
     category_code text not null,
     category_key text collate "C" not null,
     position integer not null,
-
     constraint categories_pkey primary key (category_id),
-    constraint categories_dimension_fkey
-        foreign key (dimension_id)
-        references storage.dimensions (dimension_id)
-        on delete cascade,
+    constraint categories_dimension_fkey foreign key (dimension_id)
+        references storage.dimensions (dimension_id) on delete cascade,
     constraint categories_code_not_empty check (category_code <> ''),
     constraint categories_key_not_empty check (category_key <> ''),
     constraint categories_code_length check (octet_length(category_code) between 1 and 256),
@@ -138,30 +121,20 @@ create table storage.observations (
     numeric_value double precision,
     text_value text,
     status_code text,
-
     constraint observations_pkey primary key (dataset_id, cell_index),
-    constraint observations_dataset_fkey
-        foreign key (dataset_id)
-        references storage.datasets (dataset_id)
-        on delete cascade,
-    constraint observations_cell_index_range
-        check (cell_index between 0 and 999999),
-    constraint observations_has_content
-        check (
-            numeric_value is not null
-            or text_value is not null
-            or status_code is not null
-        ),
-    constraint observations_value_exclusive
-        check (numeric_value is null or text_value is null),
-    constraint observations_numeric_value_finite
-        check (
-            numeric_value is null
-            or (
-                numeric_value > '-Infinity'::double precision
-                and numeric_value < 'Infinity'::double precision
-            )
+    constraint observations_dataset_fkey foreign key (dataset_id)
+        references storage.datasets (dataset_id) on delete cascade,
+    constraint observations_cell_index_range check (cell_index between 0 and 999999),
+    constraint observations_has_content check (
+        numeric_value is not null or text_value is not null or status_code is not null
+    ),
+    constraint observations_value_exclusive check (numeric_value is null or text_value is null),
+    constraint observations_numeric_value_finite check (
+        numeric_value is null or (
+            numeric_value > '-Infinity'::double precision
+            and numeric_value < 'Infinity'::double precision
         )
+    )
 ) partition by hash (dataset_id);
 
 comment on table storage.observations is
@@ -189,4 +162,6 @@ begin
 end;
 $partitions$;
 
-commit;
+---- create above / drop below ----
+
+drop schema storage cascade;

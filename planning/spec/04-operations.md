@@ -8,6 +8,7 @@ The API is distributed as a platform-neutral OCI container that connects to exte
 - Use `/app/api` as the default command. Deployments invoke `/app/migrate` explicitly before rolling out the API.
 - Support a read-only root filesystem, require no persistent container volumes, write logs only to stdout/stderr, and handle `SIGTERM` gracefully.
 - Publish `linux/amd64` and `linux/arm64` release images with immutable version tags and digests.
+- Publish release images to the public GitHub Container Registry only after automated tests and the million-cell gate pass. Fail rather than overwrite an existing version tag.
 - Do not include PostgreSQL in the production image.
 - Provide a disposable test Compose definition using the official `postgres:18` image, UTF-8, password authentication, `pg_isready`, and no persistent volume. The official image supports initialization through `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB`: [PostgreSQL Docker image](https://hub.docker.com/_/postgres/).
 
@@ -44,7 +45,7 @@ Invalid, missing, equal, or undersized credentials and invalid limits cause star
 
 ## HTTP, Security, and Observability
 
-- Set a 5-second header timeout, 60-second idle timeout, configured request deadline, 2-second health database timeout, and configured graceful-shutdown timeout.
+- Set a 5-second header timeout, 16 KiB maximum request headers, 60-second idle timeout, configured request deadline, 2-second health database timeout, and configured graceful-shutdown timeout.
 - On shutdown, stop accepting requests, allow in-flight work to finish, then cancel remaining work so PostgreSQL rolls back open transactions.
 - Compare bearer-token digests in constant time. Allow both tokens on read/query routes and only the read/write token on mutation routes.
 - Assume inbound TLS is terminated by the chosen deployment platform or reverse proxy. Disable CORS by default.
@@ -52,4 +53,5 @@ Invalid, missing, equal, or undersized credentials and invalid limits cause star
 - Never log raw paths, provider/dataset codes, credentials, database URLs, request/response bodies, source stamps, values, text values, or statuses.
 - Generate a new server-controlled request ID for every request and return it through `X-Request-ID`.
 - Keep `/health` public and minimal: return `200` only when the process and database are ready; otherwise return `503`.
+- Serve the OpenAPI contract and embedded interactive documentation publicly at `/openapi.json` and `/docs/`. The documentation must work without a runtime CDN, must not persist entered bearer tokens, and must not expose environment-specific credentials or database details.
 - Define initial alerts around repeated migration failure, sustained health failure, elevated `5xx`/`503`, database-pool exhaustion, and container restarts. No public metrics endpoint is required in v1.

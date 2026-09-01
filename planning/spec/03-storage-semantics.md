@@ -22,6 +22,8 @@ An empty normalized key is invalid. The following collisions are invalid:
 - Dimension keys within a dataset.
 - Category keys within a dimension.
 
+Submitted spellings and normalized keys are limited to 256 UTF-8 bytes. Replacement structures contain 1 through 64 dimensions and at least one category in every dimension.
+
 Full structure and data responses sort dimensions by normalized key and categories by normalized key within each dimension. The service stores that ordering as zero-based internal positions. These positions exist only for deterministic encoding and storage efficiency; they are not business presentation order.
 
 ## Coordinates and Values
@@ -66,7 +68,7 @@ The service fully decodes, normalizes, remaps, and validates a replacement befor
 
 Creation and replacement then use one read-committed transaction:
 
-1. Compute a lock key from the first signed 64 bits of SHA-256 over the length-prefixed normalized provider and dataset keys.
+1. Encode each normalized UTF-8 key as an unsigned 64-bit big-endian byte length followed by its bytes, concatenate provider then dataset, hash with SHA-256, and interpret the first eight digest bytes as a signed big-endian `int64` lock key.
 2. Acquire `pg_advisory_xact_lock` for that key.
 3. Resolve or insert the provider using its normalized key.
 4. Resolve and row-lock the dataset, or create it when absent.
@@ -129,7 +131,7 @@ Database constraints remain a second line of defense for local row invariants an
 
 ## Verification
 
-- Execute the target DDL on empty PostgreSQL 15 through 18 databases and inspect all constraints, foreign keys, comments, and 32 attached partitions.
+- Execute the target DDL continuously on empty PostgreSQL 18 and inspect all constraints, foreign keys, comments, and 32 attached partitions. PostgreSQL 15 through 17 compatibility is optional manual verification, not a release requirement.
 - Prove that one dataset's observations route to one partition and that duplicate internal indexes fail.
 - Test normalization collisions, deterministic sorting, POST-to-internal remapping, query permutations, inferred nulls, mutually exclusive values, status-only rows, and non-finite numeric rejection.
 - Verify JSON-null source stamps remain distinct from SQL NULL and round-trip semantically.

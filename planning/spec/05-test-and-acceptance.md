@@ -14,6 +14,7 @@
 - Test strict JSON parsing, duplicate keys, unknown fields, trailing values, source-stamp presence, dense/sparse validation, channel consistency, `float64` limits, and numeric/text conflicts.
 - Test dense and sparse response encoding, shared status strings, inferred nulls, query permutations, and canonical stored spellings.
 - Test authentication and authorization for both tokens, every status/error mapping, request IDs, content types, cache headers, method handling, and body limits.
+- Validate OpenAPI 3.1 syntax, examples, registered route coverage, public documentation delivery, and the absence of credentials or environment-specific server URLs.
 - Fuzz normalization idempotence, sparse index parsing, row-major coordinate conversion, and JSON decoding without relying on a line-coverage threshold.
 
 ## PostgreSQL and Transaction Coverage
@@ -33,6 +34,7 @@
 - Confirm that the API refuses startup with missing secrets, equal tokens, unreachable PostgreSQL, or the wrong schema version.
 - Confirm that `SIGTERM` stops new traffic and either completes or safely rolls back in-flight writes.
 - Retain useful logs and test reports as CI artifacts while ensuring they contain no credentials or observation content.
+- Require the million-cell result for the exact release commit before publishing unique multi-architecture images to GHCR.
 
 ## Million-Cell Gate
 

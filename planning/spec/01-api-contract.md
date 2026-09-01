@@ -17,6 +17,8 @@ This contract defines a private JSON API under `/v1`. Provider and dataset ident
 | `GET` | `/v1/providers/{provider}/datasets/{dataset}/structure` | Get all dimension/category codes | Allowed |
 | `GET` | `/v1/providers/{provider}/datasets/{dataset}/data` | Get the complete observation cube | Allowed |
 | `POST` | `/v1/providers/{provider}/datasets/{dataset}/query` | Get an exact Cartesian subset | Allowed |
+| `GET` | `/openapi.json` | Get the OpenAPI 3.1 contract | Public |
+| `GET` | `/docs` and `/docs/` | Redirect to and serve interactive API documentation | Public |
 
 - Authentication uses `Authorization: Bearer <token>`.
 - Missing or invalid credentials return `401`; a read-only token used for mutation returns `403`.
@@ -24,6 +26,19 @@ This contract defines a private JSON API under `/v1`. Provider and dataset ident
 - Listings are unpaginated and sorted deterministically by normalized code.
 - An unknown provider or dataset returns `404`.
 - DELETE always returns `204`, including when the dataset is already absent.
+- `/health`, `/openapi.json`, and `/docs` are the only public routes. Documentation exposes the contract, never stored data or credentials.
+
+List responses use these envelopes:
+
+```json
+{"providers":[{"provider_code":"SCB","dataset_count":2}]}
+```
+
+```json
+{"provider_code":"SCB","datasets":[{"provider_code":"SCB","dataset_code":"Population","source_stamp":null,"cell_count":4,"valued_cell_count":3,"null_cell_count":1,"updated_at":"2026-09-01T12:00:00Z"}]}
+```
+
+The single-dataset summary route returns the summary object directly. Creation and replacement return `{"result":"created|replaced","dataset":<summary>}`.
 
 ## Dataset Metadata
 
@@ -69,6 +84,8 @@ A structure uses only `id` and `dimension`:
 - Full structure and data responses sort dimensions and categories by normalized code before assigning indexes.
 - Query responses preserve the requested dimension and category index order while returning stored code spellings.
 - Query requests must include every dataset dimension exactly once and at least one existing category per dimension.
+- Replacement structures contain between 1 and 64 dimensions, and every dimension contains at least one category.
+- Submitted code spellings and their normalized keys are each limited to 256 UTF-8 bytes.
 
 Observation channels are:
 
@@ -82,6 +99,8 @@ Observation channels are:
 - Sparse: objects keyed by canonical, base-10 flattened indexes; omitted keys mean null.
 
 Numeric and text values are mutually exclusive at each index. Status is independent. `value` remains required for text-only datasets and may be an empty sparse object or an all-null dense array. Empty `text` and `status` channels are omitted from responses.
+
+`value` selects the representation for the complete request. `text` and non-scalar `status`, when present, must use the same representation. A scalar request status expands to every payload-local logical cell. A response uses scalar status only when every returned cell has the same non-null status; otherwise it uses the requested dense/sparse representation and is omitted when all statuses are null.
 
 Reads accept `?format=dense|sparse`; sparse is the default. Replacement requests may use either representation, inferred from `value`.
 
@@ -109,6 +128,20 @@ Every observation response combines metadata, selected structure, and channels:
 
 A subset response includes every requested category, even when all corresponding cells are null.
 
+Query requests contain only a payload-local structure selector:
+
+```json
+{
+  "id": ["year", "sex"],
+  "dimension": {
+    "year": {"index": {"2025": 0}},
+    "sex": {"index": {"F": 0, "M": 1}}
+  }
+}
+```
+
+The dimension and category indexes are unique, zero-based, contiguous, and define response order. Stored spellings replace request spellings in the response.
+
 ## Creation and Replacement
 
 `POST /v1/providers/{provider}/datasets/{dataset}` accepts:
@@ -132,7 +165,7 @@ A subset response includes every requested category, even when all corresponding
 - When the dataset exists and `replace` is false, return `409 dataset_exists`.
 - `replace: true` permits overwrite but also creates the dataset when absent.
 - Creation returns `201`; replacement returns `200`.
-- The response contains `result: "created"` or `"replaced"` plus the resulting dataset summary.
+- The response contains `result: "created"` or `"replaced"` and the resulting summary under `dataset`.
 - Replacements are unconditional. Same-dataset writes serialize, and the last successful request wins.
 - A failure leaves the previous dataset fully visible and unchanged.
 
@@ -141,6 +174,7 @@ A subset response includes every requested category, even when all corresponding
 - Codes match after trimming surrounding Unicode whitespace, Unicode NFKC normalization, and Unicode case folding.
 - Empty normalized codes and normalized duplicates are invalid.
 - Provider and dataset response spelling is preserved from first creation; each replacement supplies the current stored spelling for dimensions and categories.
+- Retained provider spelling survives deletion of its last dataset. A deleted and later recreated dataset establishes a new first-creation spelling.
 - Provider and dataset path codes cannot contain `/`.
 - The logical dimension product must be between 1 and 1,000,000 without overflow.
 - Dense channels must have exactly the logical cell count.
@@ -149,7 +183,9 @@ A subset response includes every requested category, even when all corresponding
 - Sparse channels cannot contain explicit null entries; omission represents null.
 - Unknown fields, duplicate JSON object keys, trailing JSON values, invalid channel types, and numeric/text collisions are rejected.
 - JSON body routes require `Content-Type: application/json`.
+- `application/json` may include no charset or `charset=utf-8`. Other media types, charsets, and content encodings are unsupported.
 - Oversized bodies return `413` before database work.
+- Only full-data and query reads accept a query parameter: exactly one `format=dense|sparse`. Unknown or duplicate parameters are invalid.
 
 ## Errors and HTTP Behavior
 
@@ -176,6 +212,8 @@ All errors use:
 - `422`: syntactically valid input violates dataset rules.
 - `500`: unexpected internal failure.
 - `503`: database unavailable or operation deadline exceeded.
+
+Stable error codes are `invalid_json`, `invalid_query`, `invalid_path_code`, `unauthorized`, `forbidden`, `not_found`, `method_not_allowed`, `dataset_exists`, `request_too_large`, `unsupported_media_type`, `validation_failed`, `cell_limit_exceeded`, `internal_error`, and `service_unavailable`. Validation messages may become more precise without changing the code.
 
 Every response includes `X-Request-ID`; JSON responses use UTF-8 and `Cache-Control: no-store`. `/health` returns `200 {"status":"ok"}` or `503 {"status":"unavailable"}` without internal database details.
 
