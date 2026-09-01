@@ -3,7 +3,6 @@
 .github
 .venv
 archive
-planning
 _local
 *.md
 !go.mod
