@@ -10,3 +10,7 @@ bin/
 coverage.out
 *.exe
 *.test
+
+# Acceptance artifacts
+million-cell-report.json
+reports/

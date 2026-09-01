@@ -1,0 +1,207 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# The workflow only reads the repository; publishing happens in release.yml.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Synthetic credentials for a disposable database. Nothing here is a secret,
+  # and no step prints them.
+  POSTGRES_USER: storage
+  POSTGRES_PASSWORD: storage
+  POSTGRES_DB: storage
+
+jobs:
+  test:
+    name: Format, vet, and test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18@sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280
+        env:
+          POSTGRES_USER: storage
+          POSTGRES_PASSWORD: storage
+          POSTGRES_DB: storage
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U storage -d storage"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Verify formatting
+        run: |
+          unformatted=$(gofmt -l cmd internal tools)
+          if [ -n "$unformatted" ]; then
+            echo "These files are not gofmt-formatted:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Verify the module is tidy
+        run: |
+          go mod tidy
+          if ! git diff --quiet -- go.mod go.sum; then
+            echo "go.mod or go.sum is not tidy; run 'go mod tidy'."
+            git --no-pager diff -- go.mod go.sum
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build the release binaries
+        run: |
+          # The production tag is what the image uses; both must compile.
+          mkdir -p /tmp/bin
+          CGO_ENABLED=0 go build -tags production -o /tmp/bin/ ./cmd/api ./cmd/migrate
+          go build ./...
+          ls -l /tmp/bin
+
+      - name: Confirm the production build excludes the down migration
+        run: |
+          # Production migrations are forward only, so downgrade.go must be
+          # compiled out of the shipped binaries and present everywhere else.
+          production=$(go list -tags production -f '{{join .GoFiles " "}}' ./internal/migrations)
+          development=$(go list -f '{{join .GoFiles " "}}' ./internal/migrations)
+          echo "production files:  $production"
+          echo "development files: $development"
+          if printf '%s' "$production" | grep -q 'downgrade.go'; then
+            echo "the production build still compiles the down migration"
+            exit 1
+          fi
+          if ! printf '%s' "$development" | grep -q 'downgrade.go'; then
+            echo "the down migration is missing from development builds"
+            exit 1
+          fi
+
+      - name: Run unit and integration tests with the race detector
+        env:
+          DATABASE_URL: postgres://storage:storage@localhost:5432/storage?sslmode=disable
+        run: |
+          set -o pipefail
+          mkdir -p reports
+          # pipefail keeps go test's exit status even though the output is teed.
+          go test -race -count=1 -timeout=25m -json ./... | tee reports/test-output.json
+
+      - name: Run the seeded fuzz targets
+        env:
+          DATABASE_URL: postgres://storage:storage@localhost:5432/storage?sslmode=disable
+        run: |
+          for target in FuzzNormalizeCodeIsIdempotent FuzzParseSparseIndex \
+                        FuzzCoordinateRoundTrip FuzzParseReplacementNeverPanics \
+                        FuzzParseSelectionNeverPanics; do
+            echo "== $target"
+            go test ./internal/domain/ -run "^${target}$" -fuzz "^${target}$" -fuzztime=30s
+          done
+
+      - name: Verify the migrated schema
+        env:
+          DATABASE_URL: postgres://storage:storage@localhost:5432/storage?sslmode=disable
+        run: |
+          go run ./cmd/migrate
+          psql "$DATABASE_URL" -tAc "select version from public.schema_version"
+          partitions=$(psql "$DATABASE_URL" -tAc "
+            select count(*) from pg_inherits i
+            join pg_class p on p.oid = i.inhparent
+            join pg_namespace n on n.oid = p.relnamespace
+            where n.nspname = 'storage' and p.relname = 'observations'")
+          echo "observation partitions: $partitions"
+          test "$partitions" = "32"
+
+      - name: Sanitize the reports
+        if: always()
+        run: |
+          # Reports are published as artifacts, so scrub anything that could
+          # carry a credential before uploading. Test fixtures contain only
+          # synthetic observation values.
+          if [ -d reports ]; then
+            sed -i -E \
+              -e 's#(postgres(ql)?://)[^@[:space:]"]+@#\1REDACTED@#g' \
+              -e 's#(Bearer )[A-Za-z0-9._~+/=-]+#\1REDACTED#g' \
+              -e 's#(token[^"]*"[[:space:]]*:[[:space:]]*")[^"]*#\1REDACTED#gI' \
+              reports/* 2>/dev/null || true
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports
+          path: reports/
+          retention-days: 14
+          if-no-files-found: warn
+
+  image:
+    name: Build and smoke-test the production image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build the production image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: nordicintel-storage-api:ci
+          build-args: |
+            VERSION=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Confirm both commands are present and the image is non-root
+        run: |
+          docker image inspect nordicintel-storage-api:ci \
+            --format 'user={{.Config.User}} entrypoint={{.Config.Entrypoint}}'
+          test "$(docker image inspect nordicintel-storage-api:ci --format '{{.Config.User}}')" = "nonroot:nonroot"
+
+      - name: Container smoke test
+        env:
+          LOG_DIR: ${{ runner.temp }}
+        run: bash scripts/container-smoke.sh nordicintel-storage-api:ci
+
+      - name: Verify multi-architecture builds
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: false
+          build-args: |
+            VERSION=${{ github.sha }}
+          cache-from: type=gha
+
+      - name: Sanitize the container log
+        if: always()
+        run: |
+          if [ -f "${{ runner.temp }}/api.log" ]; then
+            sed -i -E \
+              -e 's#(postgres(ql)?://)[^@[:space:]"]+@#\1REDACTED@#g' \
+              -e 's#(Bearer )[A-Za-z0-9._~+/=-]+#\1REDACTED#g' \
+              "${{ runner.temp }}/api.log"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: container-smoke-log
+          path: ${{ runner.temp }}/api.log
+          retention-days: 14
+          if-no-files-found: warn

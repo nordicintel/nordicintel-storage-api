@@ -1,0 +1,146 @@
+name: Million-cell gate
+
+# The gate is expensive, so it runs on demand. A successful run publishes a
+# commit status that the release workflow requires, tied to the exact SHA it
+# tested.
+on:
+  workflow_dispatch:
+    inputs:
+      api_cpus:
+        description: "vCPUs for the API container (the intended deployment allocation)"
+        required: false
+        default: "1"
+      api_memory:
+        description: "Memory for the API container"
+        required: false
+        default: "1g"
+      postgres_cpus:
+        description: "vCPUs for PostgreSQL"
+        required: false
+        default: "2"
+      postgres_memory:
+        description: "Memory for PostgreSQL"
+        required: false
+        default: "2g"
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: million-cell-${{ github.sha }}
+  cancel-in-progress: false
+
+env:
+  MILLION_CELL_CONTEXT: acceptance/million-cell
+
+jobs:
+  gate:
+    name: Fully populated one-million-cell dataset
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Report the gate as pending
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -f state=pending \
+            -f context="${MILLION_CELL_CONTEXT}" \
+            -f description="Million-cell gate running" \
+            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Build the production image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: nordicintel-storage-api:million-cell
+          build-args: |
+            VERSION=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run the gate
+        env:
+          API_CPUS: ${{ inputs.api_cpus }}
+          API_MEMORY: ${{ inputs.api_memory }}
+          PG_CPUS: ${{ inputs.postgres_cpus }}
+          PG_MEMORY: ${{ inputs.postgres_memory }}
+        run: bash scripts/million-cell.sh nordicintel-storage-api:million-cell reports
+
+      - name: Summarize
+        if: always()
+        run: |
+          {
+            echo "## Million-cell gate"
+            echo
+            echo "Commit: \`${GITHUB_SHA}\`"
+            echo
+            if [ -f reports/million-cell-report.json ]; then
+              echo '### Measurements'
+              echo
+              echo '| operation | duration (ms) | request bytes | response bytes | status |'
+              echo '|---|---:|---:|---:|---:|'
+              jq -r '.measurements[] | "| \(.name) | \(.duration_ms) | \(.request_bytes) | \(.response_bytes) | \(.status) |"' \
+                reports/million-cell-report.json
+              echo
+              echo '### Checks'
+              jq -r '.checks_passed[] | "- \(.)"' reports/million-cell-report.json
+            fi
+            if [ -f reports/resources.json ]; then
+              echo
+              echo '### Resources'
+              echo '```json'
+              cat reports/resources.json
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Sanitize the artifacts
+        if: always()
+        run: |
+          # The gate uses synthetic tokens, but the artifacts are published, so
+          # redact anything credential-shaped and drop raw observation output.
+          if [ -d reports ]; then
+            rm -f reports/memory-samples.txt reports/size-samples.txt
+            sed -i -E \
+              -e 's#(postgres(ql)?://)[^@[:space:]"]+@#\1REDACTED@#g' \
+              -e 's#(Bearer )[A-Za-z0-9._~+/=-]+#\1REDACTED#g' \
+              reports/* 2>/dev/null || true
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: million-cell-report
+          path: reports/
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: Publish the commit status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            state=success
+            description="Million-cell gate passed"
+          else
+            state=failure
+            description="Million-cell gate failed"
+          fi
+          gh api "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -f state="$state" \
+            -f context="${MILLION_CELL_CONTEXT}" \
+            -f description="$description" \
+            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+        env:
+          GH_TOKEN: ${{ github.token }}

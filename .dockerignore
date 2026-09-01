@@ -1,0 +1,20 @@
+# Keep the build context to the module sources the Dockerfile actually copies.
+.git
+.github
+.venv
+archive
+planning
+_local
+*.md
+!go.mod
+.env
+.env.*
+!.env.example
+bin
+coverage.out
+*.exe
+*.test
+docker-compose.yml
+Dockerfile
+.dockerignore
+tools

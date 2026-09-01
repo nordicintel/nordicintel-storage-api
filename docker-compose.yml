@@ -1,0 +1,22 @@
+# Disposable local and CI database. There is no volume, so stopping the stack
+# discards every byte; this is a test dependency, never a production database.
+services:
+  postgres:
+    image: postgres:18@sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280
+    environment:
+      POSTGRES_USER: storage
+      POSTGRES_PASSWORD: storage
+      POSTGRES_DB: storage
+      # The service must be UTF-8; the API refuses to start otherwise.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    # PostgreSQL 18 keeps its data under /var/lib/postgresql rather than
+    # /var/lib/postgresql/data. Declaring no volume at all keeps it disposable.
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U storage -d storage"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
