@@ -357,6 +357,21 @@ func (p *Postgres) Delete(ctx context.Context, provider, dataset domain.Code) er
 	if _, err := tx.Exec(ctx, `select pg_advisory_xact_lock($1)`, advisoryKey(provider.Key, dataset.Key)); err != nil {
 		return err
 	}
+	// storage.observations has no foreign key to storage.datasets (see the
+	// migration comment on that table), so its rows must be removed
+	// explicitly before the dataset row disappears, rather than relying on
+	// an ON DELETE CASCADE.
+	_, err = tx.Exec(ctx, `
+		delete from storage.observations o
+		using storage.datasets d, storage.providers p
+		where o.dataset_id = d.dataset_id
+		  and d.provider_id = p.provider_id
+		  and p.provider_key = $1
+		  and d.dataset_key = $2
+	`, provider.Key, dataset.Key)
+	if err != nil {
+		return err
+	}
 	_, err = tx.Exec(ctx, `
 		delete from storage.datasets d
 		using storage.providers p

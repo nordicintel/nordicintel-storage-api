@@ -122,8 +122,6 @@ create table storage.observations (
     text_value text,
     status_code text,
     constraint observations_pkey primary key (dataset_id, cell_index),
-    constraint observations_dataset_fkey foreign key (dataset_id)
-        references storage.datasets (dataset_id) on delete cascade,
     constraint observations_cell_index_range check (cell_index between 0 and 999999),
     constraint observations_has_content check (
         numeric_value is not null or text_value is not null or status_code is not null
@@ -138,7 +136,12 @@ create table storage.observations (
 ) partition by hash (dataset_id);
 
 comment on table storage.observations is
-    'Sparse current observations partitioned so every dataset is routed to one hash partition.';
+    'Sparse current observations partitioned so every dataset is routed to one hash partition. '
+    'Deliberately has no foreign key to storage.datasets: Postgres enforces a foreign key with a '
+    'per-row trigger, which is prohibitively slow on a million-row bulk load. Referential integrity '
+    'is instead guaranteed by Postgres.Replace and Postgres.Delete holding an advisory lock and a '
+    '"for update" row lock on the dataset for the whole transaction, and by Postgres.Delete removing '
+    'a dataset''s observations itself instead of relying on cascade.';
 comment on column storage.observations.cell_index is
     'Internal row-major index derived from normalized dimension and category positions.';
 comment on column storage.observations.numeric_value is

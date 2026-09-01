@@ -200,7 +200,7 @@ func TestMigrationCreatesTheDocumentedSchema(t *testing.T) {
 			"dimensions_code_length", "dimensions_code_not_empty", "dimensions_dataset_fkey",
 			"dimensions_key_length", "dimensions_key_not_empty", "dimensions_key_unique",
 			"dimensions_pkey", "dimensions_position_nonnegative", "dimensions_position_unique",
-			"observations_cell_index_range", "observations_dataset_fkey", "observations_has_content",
+			"observations_cell_index_range", "observations_has_content",
 			"observations_numeric_value_finite", "observations_pkey", "observations_value_exclusive",
 			"providers_code_length", "providers_code_not_empty", "providers_key_length",
 			"providers_key_not_empty", "providers_key_unique", "providers_pkey",
@@ -438,8 +438,6 @@ func TestSchemaConstraintsRejectInvalidRows(t *testing.T) {
 			`insert into storage.observations(dataset_id, cell_index, numeric_value) values ($1,-1,1.0)`, []any{datasetID}},
 		{"observation index over the ceiling",
 			`insert into storage.observations(dataset_id, cell_index, numeric_value) values ($1,1000000,1.0)`, []any{datasetID}},
-		{"observation for an unknown dataset",
-			`insert into storage.observations(dataset_id, cell_index, numeric_value) values (987654321,0,1.0)`, nil},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -452,6 +450,23 @@ func TestSchemaConstraintsRejectInvalidRows(t *testing.T) {
 				t.Fatal("the database accepted an invalid row")
 			}
 		})
+	}
+}
+
+// storage.observations deliberately has no foreign key to storage.datasets
+// (see the migration comment on that table): a per-row foreign key trigger is
+// prohibitively slow on a million-row bulk load. The schema itself therefore
+// accepts an observation for a nonexistent dataset; TestObservationsNeverOutliveTheirDataset
+// is what actually proves the invariant holds, by exercising Postgres.Replace
+// and Postgres.Delete rather than raw SQL.
+func TestSchemaAcceptsAnObservationForAnUnknownDataset(t *testing.T) {
+	url := migratedDatabase(t)
+	conn := connect(t, url)
+	ctx := t.Context()
+	if _, err := conn.Exec(ctx,
+		`insert into storage.observations(dataset_id, cell_index, numeric_value) values (987654321,0,1.0)`,
+	); err != nil {
+		t.Fatalf("the schema rejected an observation for an unknown dataset: %v", err)
 	}
 }
 
