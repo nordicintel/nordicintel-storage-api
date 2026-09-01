@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -1108,5 +1109,108 @@ func TestPingReportsConnectivity(t *testing.T) {
 	database := openStore(t)
 	if err := database.Ping(t.Context()); err != nil {
 		t.Fatalf("ping: %v", err)
+	}
+}
+
+func TestMigrationsSerializeOnTheGlobalAdvisoryLock(t *testing.T) {
+	url := freshDatabase(t, "")
+
+	t.Run("a held lock makes the migration wait", func(t *testing.T) {
+		holder := connect(t, url)
+		if _, err := holder.Exec(t.Context(),
+			`select pg_advisory_lock($1)`, migrations.AdvisoryLockKey); err != nil {
+			t.Fatalf("take the migration lock: %v", err)
+		}
+
+		blocked, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+		defer cancel()
+		err := migrations.Run(blocked, url)
+		if err == nil {
+			t.Fatal("the migration ran while another session held the lock")
+		}
+		if !strings.Contains(err.Error(), "context deadline exceeded") {
+			t.Fatalf("error = %v, want the migration to block on the lock", err)
+		}
+
+		conn := connect(t, url)
+		var objects int
+		if err := conn.QueryRow(t.Context(), `
+			select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
+			where n.nspname = 'storage'
+		`).Scan(&objects); err != nil {
+			t.Fatal(err)
+		}
+		if objects != 0 {
+			t.Fatalf("the blocked migration created %d objects", objects)
+		}
+		if _, err := holder.Exec(t.Context(),
+			`select pg_advisory_unlock($1)`, migrations.AdvisoryLockKey); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("the migration succeeds once the lock is free", func(t *testing.T) {
+		if err := migrations.Run(t.Context(), url); err != nil {
+			t.Fatalf("migrate: %v", err)
+		}
+	})
+
+	t.Run("the lock is released afterwards", func(t *testing.T) {
+		conn := connect(t, url)
+		var held bool
+		if err := conn.QueryRow(t.Context(), `
+			select exists(
+				select 1 from pg_locks
+				where locktype = 'advisory'
+				  and objid = ($1::bigint & 4294967295)::oid
+				  and classid = (($1::bigint >> 32) & 4294967295)::oid)
+		`, migrations.AdvisoryLockKey).Scan(&held); err != nil {
+			t.Fatal(err)
+		}
+		if held {
+			t.Fatal("the migration left its advisory lock held")
+		}
+	})
+}
+
+func TestConcurrentMigrationsConverge(t *testing.T) {
+	url := freshDatabase(t, "")
+	const runners = 4
+	var group sync.WaitGroup
+	errs := make([]error, runners)
+	start := make(chan struct{})
+	for i := range runners {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			<-start
+			errs[i] = migrations.Run(t.Context(), url)
+		}()
+	}
+	close(start)
+	group.Wait()
+	for i, err := range errs {
+		if err != nil {
+			t.Fatalf("runner %d: %v", i, err)
+		}
+	}
+	conn := connect(t, url)
+	var version int32
+	if err := conn.QueryRow(t.Context(), `select version from public.schema_version`).Scan(&version); err != nil {
+		t.Fatal(err)
+	}
+	if version != migrations.ExpectedVersion {
+		t.Fatalf("schema version = %d after concurrent migrations", version)
+	}
+	var partitions int
+	if err := conn.QueryRow(t.Context(), `
+		select count(*) from pg_inherits i join pg_class p on p.oid = i.inhparent
+		join pg_namespace n on n.oid = p.relnamespace
+		where n.nspname='storage' and p.relname='observations'
+	`).Scan(&partitions); err != nil {
+		t.Fatal(err)
+	}
+	if partitions != 32 {
+		t.Fatalf("partitions = %d after concurrent migrations", partitions)
 	}
 }

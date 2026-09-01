@@ -152,6 +152,18 @@
                       }
                     }
                   }
+                },
+                "example": {
+                  "providers": [
+                    {
+                      "provider_code": "SCB",
+                      "dataset_count": 2
+                    },
+                    {
+                      "provider_code": "Eurostat",
+                      "dataset_count": 1
+                    }
+                  ]
                 }
               }
             }
@@ -201,6 +213,22 @@
                       }
                     }
                   }
+                },
+                "example": {
+                  "provider_code": "SCB",
+                  "datasets": [
+                    {
+                      "provider_code": "SCB",
+                      "dataset_code": "Population",
+                      "source_stamp": {
+                        "etag": "abc"
+                      },
+                      "cell_count": 4,
+                      "valued_cell_count": 2,
+                      "null_cell_count": 2,
+                      "updated_at": "2026-09-01T12:00:00Z"
+                    }
+                  ]
                 }
               }
             }
@@ -241,6 +269,17 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DatasetSummary"
+                },
+                "example": {
+                  "provider_code": "SCB",
+                  "dataset_code": "Population",
+                  "source_stamp": {
+                    "etag": "abc"
+                  },
+                  "cell_count": 4,
+                  "valued_cell_count": 2,
+                  "null_cell_count": 2,
+                  "updated_at": "2026-09-01T12:00:00Z"
                 }
               }
             }
@@ -270,6 +309,48 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/Replacement"
+              },
+              "example": {
+                "replace": false,
+                "source_stamp": {
+                  "etag": "abc"
+                },
+                "id": [
+                  "sex",
+                  "year"
+                ],
+                "dimension": {
+                  "sex": {
+                    "index": {
+                      "M": 0,
+                      "F": 1
+                    }
+                  },
+                  "year": {
+                    "index": {
+                      "2024": 0,
+                      "2025": 1
+                    }
+                  }
+                },
+                "value": [
+                  10.5,
+                  null,
+                  null,
+                  null
+                ],
+                "text": [
+                  null,
+                  null,
+                  null,
+                  "confidential"
+                ],
+                "status": [
+                  null,
+                  null,
+                  null,
+                  "c"
+                ]
               }
             }
           }
@@ -281,6 +362,20 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MutationResult"
+                },
+                "example": {
+                  "result": "replaced",
+                  "dataset": {
+                    "provider_code": "SCB",
+                    "dataset_code": "Population",
+                    "source_stamp": {
+                      "etag": "abc"
+                    },
+                    "cell_count": 4,
+                    "valued_cell_count": 2,
+                    "null_cell_count": 2,
+                    "updated_at": "2026-09-01T12:00:00Z"
+                  }
                 }
               }
             }
@@ -291,6 +386,20 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MutationResult"
+                },
+                "example": {
+                  "result": "created",
+                  "dataset": {
+                    "provider_code": "SCB",
+                    "dataset_code": "Population",
+                    "source_stamp": {
+                      "etag": "abc"
+                    },
+                    "cell_count": 4,
+                    "valued_cell_count": 2,
+                    "null_cell_count": 2,
+                    "updated_at": "2026-09-01T12:00:00Z"
+                  }
                 }
               }
             }
@@ -372,6 +481,35 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StructureResponse"
+                },
+                "example": {
+                  "provider_code": "SCB",
+                  "dataset_code": "Population",
+                  "source_stamp": {
+                    "etag": "abc"
+                  },
+                  "cell_count": 4,
+                  "valued_cell_count": 2,
+                  "null_cell_count": 2,
+                  "updated_at": "2026-09-01T12:00:00Z",
+                  "id": [
+                    "sex",
+                    "year"
+                  ],
+                  "dimension": {
+                    "sex": {
+                      "index": {
+                        "F": 0,
+                        "M": 1
+                      }
+                    },
+                    "year": {
+                      "index": {
+                        "2024": 0,
+                        "2025": 1
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -415,6 +553,44 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DataResponse"
+                },
+                "example": {
+                  "provider_code": "SCB",
+                  "dataset_code": "Population",
+                  "source_stamp": {
+                    "etag": "abc"
+                  },
+                  "cell_count": 4,
+                  "valued_cell_count": 2,
+                  "null_cell_count": 2,
+                  "updated_at": "2026-09-01T12:00:00Z",
+                  "id": [
+                    "sex",
+                    "year"
+                  ],
+                  "dimension": {
+                    "sex": {
+                      "index": {
+                        "F": 0,
+                        "M": 1
+                      }
+                    },
+                    "year": {
+                      "index": {
+                        "2024": 0,
+                        "2025": 1
+                      }
+                    }
+                  },
+                  "value": {
+                    "2": 10.5
+                  },
+                  "text": {
+                    "1": "confidential"
+                  },
+                  "status": {
+                    "1": "c"
+                  }
                 }
               }
             }
@@ -490,6 +666,41 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DataResponse"
+                },
+                "example": {
+                  "provider_code": "SCB",
+                  "dataset_code": "Population",
+                  "source_stamp": {
+                    "etag": "abc"
+                  },
+                  "cell_count": 4,
+                  "valued_cell_count": 2,
+                  "null_cell_count": 2,
+                  "updated_at": "2026-09-01T12:00:00Z",
+                  "id": [
+                    "year",
+                    "sex"
+                  ],
+                  "dimension": {
+                    "year": {
+                      "index": {
+                        "2025": 0
+                      }
+                    },
+                    "sex": {
+                      "index": {
+                        "F": 0,
+                        "M": 1
+                      }
+                    }
+                  },
+                  "value": {},
+                  "text": {
+                    "0": "confidential"
+                  },
+                  "status": {
+                    "0": "c"
+                  }
                 }
               }
             }
@@ -994,6 +1205,13 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "invalid_query",
+                "message": "query must contain at most one format=dense|sparse parameter",
+                "request_id": "7f1c2a9e4b6d48f0a1c3e5d7b9f0a2c4"
+              }
             }
           }
         }
@@ -1004,6 +1222,13 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "unauthorized",
+                "message": "missing or invalid bearer token",
+                "request_id": "7f1c2a9e4b6d48f0a1c3e5d7b9f0a2c4"
+              }
             }
           }
         }
@@ -1014,6 +1239,13 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "forbidden",
+                "message": "read-only credentials cannot mutate data",
+                "request_id": "7f1c2a9e4b6d48f0a1c3e5d7b9f0a2c4"
+              }
             }
           }
         }
@@ -1024,6 +1256,13 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "not_found",
+                "message": "provider or dataset not found",
+                "request_id": "7f1c2a9e4b6d48f0a1c3e5d7b9f0a2c4"
+              }
             }
           }
         }
@@ -1034,6 +1273,13 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "dataset_exists",
+                "message": "dataset already exists; set replace to true to overwrite it",
+                "request_id": "7f1c2a9e4b6d48f0a1c3e5d7b9f0a2c4"
+              }
             }
           }
         }
@@ -1044,6 +1290,13 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "request_too_large",
+                "message": "request body exceeds the configured limit",
+                "request_id": "7f1c2a9e4b6d48f0a1c3e5d7b9f0a2c4"
+              }
             }
           }
         }
@@ -1054,6 +1307,13 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "unsupported_media_type",
+                "message": "Content-Type must be application/json",
+                "request_id": "7f1c2a9e4b6d48f0a1c3e5d7b9f0a2c4"
+              }
             }
           }
         }
@@ -1064,6 +1324,13 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "validation_failed",
+                "message": "dimension indexes must be contiguous",
+                "request_id": "7f1c2a9e4b6d48f0a1c3e5d7b9f0a2c4"
+              }
             }
           }
         }
@@ -1074,6 +1341,13 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "internal_error",
+                "message": "unexpected internal failure",
+                "request_id": "7f1c2a9e4b6d48f0a1c3e5d7b9f0a2c4"
+              }
             }
           }
         }
@@ -1092,6 +1366,13 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "method_not_allowed",
+                "message": "method not allowed",
+                "request_id": "7f1c2a9e4b6d48f0a1c3e5d7b9f0a2c4"
+              }
             }
           }
         }
@@ -1102,6 +1383,13 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "service_unavailable",
+                "message": "operation deadline exceeded or request cancelled",
+                "request_id": "7f1c2a9e4b6d48f0a1c3e5d7b9f0a2c4"
+              }
             }
           }
         }
