@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/nordicintel/nordicintel-storage-api/internal/domain"
 )
 
 // The million-cell test is the acceptance gate for the documented limit. It is
@@ -92,6 +94,21 @@ func sparseMillionCellBody(t *testing.T, replace bool) string {
 	return builder.String()
 }
 
+// logDomainParseOnly times domain.ParseReplacement in isolation, with no HTTP
+// or database work involved, so it can be compared against the full HTTP
+// round-trip timed by reportUsage below and against
+// internal/store's phase-checkpoint timings, to see how much of the total
+// belongs to Go-side JSON decode/remapping versus Postgres.
+func logDomainParseOnly(t *testing.T, label, body string) {
+	t.Helper()
+	started := time.Now()
+	if _, err := domain.ParseReplacement("SCB", "Million", []byte(body), 1_000_000); err != nil {
+		t.Fatalf("domain-only parse: %v", err)
+	}
+	t.Logf("%s domain.ParseReplacement (isolated, no HTTP/DB): duration=%s",
+		label, time.Since(started).Round(time.Millisecond))
+}
+
 func reportUsage(t *testing.T, label string, started time.Time, responseBytes int) {
 	t.Helper()
 	var memory runtime.MemStats
@@ -120,6 +137,7 @@ func TestMillionCellDatasetRoundTrips(t *testing.T) {
 	t.Run("fully populated dense replacement", func(t *testing.T) {
 		body := denseMillionCellBody(t, false)
 		t.Logf("dense request body: %s", humanBytes(uint64(len(body))))
+		logDomainParseOnly(t, "dense", body)
 		started := time.Now()
 		got := h.expect(t, http.StatusCreated, http.MethodPost, path, writeToken, body)
 		reportUsage(t, "dense replacement", started, len(got.body))
@@ -177,6 +195,7 @@ func TestMillionCellDatasetRoundTrips(t *testing.T) {
 	t.Run("fully populated sparse replacement", func(t *testing.T) {
 		body := sparseMillionCellBody(t, true)
 		t.Logf("sparse request body: %s", humanBytes(uint64(len(body))))
+		logDomainParseOnly(t, "sparse", body)
 		started := time.Now()
 		got := h.expect(t, http.StatusOK, http.MethodPost, path, writeToken, body)
 		reportUsage(t, "sparse replacement", started, len(got.body))
