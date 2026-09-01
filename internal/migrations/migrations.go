@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/tern/v2/migrate"
@@ -13,6 +14,13 @@ import (
 const (
 	ExpectedVersion = int32(1)
 	VersionTable    = "public.schema_version"
+
+	// AdvisoryLockKey serializes migration runs across every deployment job
+	// touching one database. It is a fixed value rather than a hash so that an
+	// operator can recognise the holder in pg_locks. Migrations are the only
+	// user of a session-scoped advisory lock; request-scoped dataset locks are
+	// transaction scoped and derived from the identity being written.
+	AdvisoryLockKey = int64(7_446_213_509_137_401)
 )
 
 //go:embed sql/*.sql
@@ -35,6 +43,17 @@ func Run(ctx context.Context, databaseURL string) error {
 	if err := CheckServer(ctx, conn); err != nil {
 		return err
 	}
+	// Hold the lock for the whole session so a concurrent deployment job waits
+	// rather than racing the migrator. The caller's deadline bounds the wait,
+	// and closing the connection always releases the lock.
+	if _, err := conn.Exec(ctx, `select pg_advisory_lock($1)`, AdvisoryLockKey); err != nil {
+		return fmt.Errorf("acquire migration lock: %w", err)
+	}
+	defer func() {
+		releaseContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_, _ = conn.Exec(releaseContext, `select pg_advisory_unlock($1)`, AdvisoryLockKey)
+	}()
 	migrator, err := migrate.NewMigrator(ctx, conn, VersionTable)
 	if err != nil {
 		return fmt.Errorf("initialize migrator: %w", err)
