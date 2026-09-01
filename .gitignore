@@ -1,0 +1,12 @@
+# Local/temp files in the folder named "_local" are ignored
+_local/
+context.md
+
+# Local configuration and Go build artifacts
+.env
+.env.*
+!.env.example
+bin/
+coverage.out
+*.exe
+*.test
