@@ -1,0 +1,2 @@
+-- Target Database Schema
+-- Defines the proposed PostgreSQL tables, keys, constraints, indexes, and comments.
