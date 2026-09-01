@@ -78,7 +78,7 @@ func ParseReplacement(providerSpelling, datasetSpelling string, data []byte, max
 	if err != nil {
 		return Replacement{}, fmt.Errorf("text: %w", err)
 	}
-	statuses, scalarStatus, err := parseStatusChannel(payload.Status, cellCount, representation)
+	statuses, scalarStatus, err := parseStatusChannel(payload.Status, cellCount)
 	if err != nil {
 		return Replacement{}, fmt.Errorf("status: %w", err)
 	}
@@ -332,20 +332,27 @@ func parseStringChannel(raw json.RawMessage, count int64, representation channel
 	return values, nil
 }
 
-func parseStatusChannel(raw json.RawMessage, count int64, representation channelRepresentation) (map[int64]string, *string, error) {
+func parseStatusChannel(raw json.RawMessage, count int64) (map[int64]string, *string, error) {
 	trimmed := bytes.TrimSpace(raw)
 	if len(trimmed) == 0 {
 		return nil, nil, nil
 	}
-	if trimmed[0] == '"' {
+	switch trimmed[0] {
+	case '"':
 		var scalar string
 		if err := json.Unmarshal(trimmed, &scalar); err != nil {
 			return nil, nil, err
 		}
 		return nil, &scalar, nil
+	case '[':
+		values, err := parseStringChannel(trimmed, count, representationDense, true)
+		return values, nil, err
+	case '{':
+		values, err := parseStringChannel(trimmed, count, representationSparse, true)
+		return values, nil, err
+	default:
+		return nil, nil, fmt.Errorf("channel must be an array, object, or string")
 	}
-	values, err := parseStringChannel(trimmed, count, representation, true)
-	return values, nil, err
 }
 
 // parseSparseIndex accepts only the canonical base-10 spelling of a

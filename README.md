@@ -106,7 +106,7 @@ curl -X POST localhost:8080/v1/providers/SCB/datasets/Population \
         },
         "value":  [10.5, null, null, null],
         "text":   [null, null, null, "confidential"],
-        "status": [null, null, null, "c"]
+        "status": {"3": "c"}
       }'
 ```
 

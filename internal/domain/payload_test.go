@@ -162,6 +162,43 @@ func TestParseReplacementExpandsScalarStatusAcrossEveryCell(t *testing.T) {
 	}
 }
 
+func TestParseReplacementAcceptsStatusRepresentationIndependentOfValue(t *testing.T) {
+	t.Run("dense value with sparse status", func(t *testing.T) {
+		body := replacementBody(`"source_stamp":null`, twoByTwoStructure,
+			`"value":[10,20,30,40]`, `"status":{"0":"a","2":"p"}`)
+		replacement, err := ParseReplacement("SCB", "Population", body, maxCells)
+		if err != nil {
+			t.Fatalf("ParseReplacement: %v", err)
+		}
+		cells := cellsByIndex(t, replacement.Cells)
+		if cell := cells[3]; cell.Numeric == nil || *cell.Numeric != 10 || cell.Status == nil || *cell.Status != "a" {
+			t.Fatalf("payload index 0 = %+v, want numeric 10 with status a", cell)
+		}
+		if cell := cells[2]; cell.Numeric == nil || *cell.Numeric != 30 || cell.Status == nil || *cell.Status != "p" {
+			t.Fatalf("payload index 2 = %+v, want numeric 30 with status p", cell)
+		}
+	})
+
+	t.Run("sparse value with dense status", func(t *testing.T) {
+		body := replacementBody(`"source_stamp":null`, twoByTwoStructure,
+			`"value":{"0":10}`, `"status":[null,"a",null,"p"]`)
+		replacement, err := ParseReplacement("SCB", "Population", body, maxCells)
+		if err != nil {
+			t.Fatalf("ParseReplacement: %v", err)
+		}
+		cells := cellsByIndex(t, replacement.Cells)
+		if cell := cells[3]; cell.Numeric == nil || *cell.Numeric != 10 || cell.Status != nil {
+			t.Fatalf("payload index 0 = %+v, want numeric 10 without status", cell)
+		}
+		if cell := cells[1]; cell.Status == nil || *cell.Status != "a" || cell.Numeric != nil {
+			t.Fatalf("payload index 1 = %+v, want status-only a", cell)
+		}
+		if cell := cells[0]; cell.Status == nil || *cell.Status != "p" || cell.Numeric != nil {
+			t.Fatalf("payload index 3 = %+v, want status-only p", cell)
+		}
+	})
+}
+
 func TestParseReplacementAcceptsTextOnlyDatasets(t *testing.T) {
 	body := replacementBody(`"source_stamp":null`, twoByTwoStructure,
 		`"value":[null,null,null,null]`, `"text":["a","b","c","d"]`)
@@ -293,10 +330,14 @@ func TestParseReplacementRejectsInvalidChannels(t *testing.T) {
 		{"sparse index is a float", `{"source_stamp":null,` + twoByTwoStructure + `,"value":{"1.0":1}}`},
 		{"numeric overflows float64", `{"source_stamp":null,` + twoByTwoStructure + `,"value":[1e400,null,null,null]}`},
 		{"text representation differs from value", `{"source_stamp":null,` + twoByTwoStructure + `,"value":{"0":1},"text":[null,null,null,"x"]}`},
-		{"status representation differs from value", `{"source_stamp":null,` + twoByTwoStructure + `,"value":[1,2,3,4],"status":{"0":"a"}}`},
 		{"dense text wrong length", `{"source_stamp":null,` + twoByTwoStructure + `,"value":[1,2,3,4],"text":[null]}`},
 		{"text entry is not a string", `{"source_stamp":null,` + twoByTwoStructure + `,"value":[null,null,null,null],"text":[1,null,null,null]}`},
 		{"sparse text explicit null", `{"source_stamp":null,` + twoByTwoStructure + `,"value":{},"text":{"0":null}}`},
+		{"status is a number", `{"source_stamp":null,` + twoByTwoStructure + `,"value":{},"status":1}`},
+		{"dense status wrong length", `{"source_stamp":null,` + twoByTwoStructure + `,"value":{},"status":["a"]}`},
+		{"dense status entry is not a string", `{"source_stamp":null,` + twoByTwoStructure + `,"value":{},"status":["a",1,null,null]}`},
+		{"sparse status explicit null", `{"source_stamp":null,` + twoByTwoStructure + `,"value":{},"status":{"0":null}}`},
+		{"sparse status index not canonical", `{"source_stamp":null,` + twoByTwoStructure + `,"value":{},"status":{"01":"a"}}`},
 		{"numeric and text collide", `{"source_stamp":null,` + twoByTwoStructure + `,"value":[1,null,null,null],"text":["x",null,null,null]}`},
 		{"sparse numeric and text collide", `{"source_stamp":null,` + twoByTwoStructure + `,"value":{"2":1},"text":{"2":"x"}}`},
 	}

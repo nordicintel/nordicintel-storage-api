@@ -22,8 +22,8 @@ Update the planning documents and their index so implementation begins from one 
 - Define query bodies as structure-only selectors using `id` and `dimension`; indexes are contiguous, payload-local, and determine output order.
 - Require replacement structures to contain 1–64 dimensions and at least one category per dimension. Limit submitted and normalized codes to 256 UTF-8 bytes.
 - Clarify channel behavior:
-  - `value` determines dense versus sparse representation.
-  - `text` and non-scalar `status` must use the same representation.
+  - `value` determines dense versus sparse representation for `value` and `text`.
+  - Non-scalar `status` independently selects dense or sparse representation from its JSON type.
   - A scalar status expands across the whole payload.
   - Responses use scalar status only when every returned cell has the same non-null status.
   - `value` is always returned; all-null `text` and `status` are omitted.

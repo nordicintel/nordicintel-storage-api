@@ -345,12 +345,9 @@
                   null,
                   "confidential"
                 ],
-                "status": [
-                  null,
-                  null,
-                  null,
-                  "c"
-                ]
+                "status": {
+                  "3": "c"
+                }
               }
             }
           }
@@ -950,7 +947,7 @@
         }
       },
       "ValueChannel": {
-        "description": "Required numeric channel. Its representation selects dense or sparse encoding for the whole payload.",
+        "description": "Required numeric channel. Its representation selects dense or sparse encoding for value and text.",
         "oneOf": [
           {
             "$ref": "#/components/schemas/DenseNumberChannel"
@@ -972,7 +969,7 @@
         ]
       },
       "StatusChannel": {
-        "description": "Optional status channel. A single string applies to every logical cell; otherwise it uses the same representation as value.",
+        "description": "Optional status channel. A single string applies to every logical cell; otherwise its array or object representation is independent of value.",
         "oneOf": [
           {
             "type": "string"

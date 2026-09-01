@@ -217,7 +217,7 @@ func assertError(t *testing.T, recorder *httptest.ResponseRecorder, status int, 
 
 const validBody = `{"source_stamp":null,"id":["sex","year"],` +
 	`"dimension":{"sex":{"index":{"M":0,"F":1}},"year":{"index":{"2024":0,"2025":1}}},` +
-	`"value":[1,2,3,4]}`
+	`"value":[1,2,3,4],"status":{"0":"a"}}`
 
 const validQuery = `{"id":["year","sex"],"dimension":{"year":{"index":{"2025":0}},"sex":{"index":{"F":0,"M":1}}}}`
 

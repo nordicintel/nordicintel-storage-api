@@ -396,10 +396,10 @@ func TestContractExamplesValidateAgainstTheirSchemas(t *testing.T) {
 			`{"result":"created","dataset":` + summary + `}`},
 		{"structure", "#/components/schemas/Structure",
 			`{"id":["sex","year"],"dimension":{"sex":{"index":{"M":0,"F":1}},"year":{"index":{"2024":0,"2025":1}}}}`},
-		{"dense replacement", "#/components/schemas/Replacement",
+		{"dense replacement with sparse status", "#/components/schemas/Replacement",
 			`{"replace":false,"source_stamp":{"etag":"abc"},"id":["sex","year"],` +
 				`"dimension":{"sex":{"index":{"M":0,"F":1}},"year":{"index":{"2024":0,"2025":1}}},` +
-				`"value":[10.5,null,null,null],"text":[null,null,null,"confidential"],"status":[null,null,null,"c"]}`},
+				`"value":[10.5,null,null,null],"text":[null,null,null,"confidential"],"status":{"3":"c"}}`},
 		{"sparse replacement with scalar status", "#/components/schemas/Replacement",
 			`{"source_stamp":null,"id":["sex"],"dimension":{"sex":{"index":{"M":0}}},` +
 				`"value":{"0":1.5},"status":"c"}`},

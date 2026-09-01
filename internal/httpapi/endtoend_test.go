@@ -145,7 +145,7 @@ func (h *liveHarness) expect(t *testing.T, status int, method, target, token, bo
 
 const liveDataset = `{"source_stamp":{"etag":"abc"},` +
 	`"id":["sex","year"],"dimension":{"sex":{"index":{"M":0,"F":1}},"year":{"index":{"2024":0,"2025":1}}},` +
-	`"value":[10.5,null,null,null],"text":[null,null,null,"confidential"],"status":[null,null,null,"c"]}`
+	`"value":[10.5,null,null,null],"text":[null,null,null,"confidential"],"status":{"3":"c"}}`
 
 func TestEndToEndDatasetLifecycle(t *testing.T) {
 	h := newLiveHarness(t)

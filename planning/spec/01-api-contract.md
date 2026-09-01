@@ -93,14 +93,14 @@ Observation channels are:
 - Optional `text`: string values and nulls.
 - Optional `status`: strings and nulls, or one string applying to every logical cell.
 
-`value`, `text`, and non-string `status` use one common representation:
+`value` and `text` use one common representation. Non-string `status` independently uses either representation:
 
 - Dense: arrays whose lengths equal the dimension product.
 - Sparse: objects keyed by canonical, base-10 flattened indexes; omitted keys mean null.
 
 Numeric and text values are mutually exclusive at each index. Status is independent. `value` remains required for text-only datasets and may be an empty sparse object or an all-null dense array. Empty `text` and `status` channels are omitted from responses.
 
-`value` selects the representation for the complete request. `text` and non-scalar `status`, when present, must use the same representation. A scalar request status expands to every payload-local logical cell. A response uses scalar status only when every returned cell has the same non-null status; otherwise it uses the requested dense/sparse representation and is omitted when all statuses are null.
+`value` selects the representation for `value` and `text`; `text`, when present, must use the same representation. A non-scalar `status` selects its own dense or sparse representation from its JSON type, independently of `value`. A scalar request status expands to every payload-local logical cell. A response uses scalar status only when every returned cell has the same non-null status; otherwise it uses the requested dense/sparse response format and is omitted when all statuses are null.
 
 Reads accept `?format=dense|sparse`; sparse is the default. Replacement requests may use either representation, inferred from `value`.
 
@@ -157,7 +157,7 @@ The dimension and category indexes are unique, zero-based, contiguous, and defin
   },
   "value": [10.5, null, null, null],
   "text": [null, null, null, "confidential"],
-  "status": [null, null, null, "c"]
+  "status": {"3": "c"}
 }
 ```
 
