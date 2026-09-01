@@ -1,0 +1,6 @@
+# Normalize to LF in the repository. The build, migrations, and CI run on Linux,
+# where a stray CRLF in a shell script or SQL file is a runtime failure.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary

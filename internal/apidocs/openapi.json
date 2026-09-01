@@ -6,227 +6,1111 @@
     "description": "Private current-state observation dataset storage. The health and documentation routes are public; all /v1 routes require a bearer token."
   },
   "tags": [
-    {"name": "Readiness"},
-    {"name": "Providers"},
-    {"name": "Datasets"},
-    {"name": "Observations"}
+    {
+      "name": "Readiness"
+    },
+    {
+      "name": "Providers"
+    },
+    {
+      "name": "Datasets"
+    },
+    {
+      "name": "Observations"
+    },
+    {
+      "name": "Documentation"
+    }
   ],
   "paths": {
     "/health": {
       "get": {
         "operationId": "getHealth",
-        "tags": ["Readiness"],
+        "tags": [
+          "Readiness"
+        ],
         "security": [],
         "responses": {
-          "200": {"description": "Ready", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Health"}, "example": {"status": "ok"}}}},
-          "503": {"description": "Unavailable", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Health"}, "example": {"status": "unavailable"}}}}
+          "200": {
+            "description": "Ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                },
+                "example": {
+                  "status": "ok"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                },
+                "example": {
+                  "status": "unavailable"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "operationId": "getOpenAPIDocument",
+        "tags": [
+          "Documentation"
+        ],
+        "security": [],
+        "summary": "Public machine-readable contract",
+        "responses": {
+          "200": {
+            "description": "OpenAPI 3.1 document",
+            "content": {
+              "application/vnd.oai.openapi+json;version=3.1": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          }
+        }
+      }
+    },
+    "/docs": {
+      "get": {
+        "operationId": "redirectToDocumentation",
+        "tags": [
+          "Documentation"
+        ],
+        "security": [],
+        "summary": "Redirect to the interactive documentation",
+        "responses": {
+          "308": {
+            "description": "Permanent redirect to /docs/"
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          }
+        }
+      }
+    },
+    "/docs/": {
+      "get": {
+        "operationId": "getDocumentation",
+        "tags": [
+          "Documentation"
+        ],
+        "security": [],
+        "summary": "Public interactive documentation",
+        "responses": {
+          "200": {
+            "description": "Embedded Swagger UI",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "405": {
+            "$ref": "#/components/responses/MethodNotAllowed"
+          }
         }
       }
     },
     "/v1/providers": {
       "get": {
         "operationId": "listProviders",
-        "tags": ["Providers"],
+        "tags": [
+          "Providers"
+        ],
         "responses": {
-          "200": {"description": "Providers with current datasets", "content": {"application/json": {"schema": {"type": "object", "required": ["providers"], "properties": {"providers": {"type": "array", "items": {"$ref": "#/components/schemas/Provider"}}}}}},
-          "401": {"$ref": "#/components/responses/Unauthorized"},
-          "500": {"$ref": "#/components/responses/InternalError"},
-          "503": {"$ref": "#/components/responses/Unavailable"}
+          "200": {
+            "description": "Providers with current datasets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "providers"
+                  ],
+                  "properties": {
+                    "providers": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Provider"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
         }
       }
     },
     "/v1/providers/{provider}/datasets": {
-      "parameters": [{"$ref": "#/components/parameters/ProviderCode"}],
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProviderCode"
+        }
+      ],
       "get": {
         "operationId": "listProviderDatasets",
-        "tags": ["Datasets"],
+        "tags": [
+          "Datasets"
+        ],
         "responses": {
-          "200": {"description": "Current datasets", "content": {"application/json": {"schema": {"type": "object", "required": ["provider_code", "datasets"], "properties": {"provider_code": {"type": "string"}, "datasets": {"type": "array", "items": {"$ref": "#/components/schemas/DatasetSummary"}}}}}},
-          "401": {"$ref": "#/components/responses/Unauthorized"},
-          "404": {"$ref": "#/components/responses/NotFound"},
-          "500": {"$ref": "#/components/responses/InternalError"},
-          "503": {"$ref": "#/components/responses/Unavailable"}
+          "200": {
+            "description": "Current datasets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "provider_code",
+                    "datasets"
+                  ],
+                  "properties": {
+                    "provider_code": {
+                      "type": "string"
+                    },
+                    "datasets": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DatasetSummary"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
         }
       }
     },
     "/v1/providers/{provider}/datasets/{dataset}": {
-      "parameters": [{"$ref": "#/components/parameters/ProviderCode"}, {"$ref": "#/components/parameters/DatasetCode"}],
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProviderCode"
+        },
+        {
+          "$ref": "#/components/parameters/DatasetCode"
+        }
+      ],
       "get": {
         "operationId": "getDatasetSummary",
-        "tags": ["Datasets"],
+        "tags": [
+          "Datasets"
+        ],
         "responses": {
-          "200": {"description": "Dataset summary", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DatasetSummary"}}}},
-          "401": {"$ref": "#/components/responses/Unauthorized"},
-          "404": {"$ref": "#/components/responses/NotFound"},
-          "500": {"$ref": "#/components/responses/InternalError"},
-          "503": {"$ref": "#/components/responses/Unavailable"}
+          "200": {
+            "description": "Dataset summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetSummary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
         }
       },
       "post": {
         "operationId": "createOrReplaceDataset",
-        "tags": ["Datasets"],
-        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Replacement"}}}},
+        "tags": [
+          "Datasets"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Replacement"
+              }
+            }
+          }
+        },
         "responses": {
-          "200": {"description": "Replaced", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/MutationResult"}}}},
-          "201": {"description": "Created", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/MutationResult"}}}},
-          "400": {"$ref": "#/components/responses/BadRequest"},
-          "401": {"$ref": "#/components/responses/Unauthorized"},
-          "403": {"$ref": "#/components/responses/Forbidden"},
-          "409": {"$ref": "#/components/responses/Conflict"},
-          "413": {"$ref": "#/components/responses/TooLarge"},
-          "415": {"$ref": "#/components/responses/UnsupportedMediaType"},
-          "422": {"$ref": "#/components/responses/ValidationFailed"},
-          "500": {"$ref": "#/components/responses/InternalError"},
-          "503": {"$ref": "#/components/responses/Unavailable"}
+          "200": {
+            "description": "Replaced",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
         }
       },
       "delete": {
         "operationId": "deleteDataset",
-        "tags": ["Datasets"],
+        "tags": [
+          "Datasets"
+        ],
         "responses": {
-          "204": {"description": "Deleted or already absent"},
-          "400": {"$ref": "#/components/responses/BadRequest"},
-          "401": {"$ref": "#/components/responses/Unauthorized"},
-          "403": {"$ref": "#/components/responses/Forbidden"},
-          "500": {"$ref": "#/components/responses/InternalError"},
-          "503": {"$ref": "#/components/responses/Unavailable"}
+          "204": {
+            "description": "Deleted or already absent"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
         }
       }
     },
     "/v1/providers/{provider}/datasets/{dataset}/structure": {
-      "parameters": [{"$ref": "#/components/parameters/ProviderCode"}, {"$ref": "#/components/parameters/DatasetCode"}],
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProviderCode"
+        },
+        {
+          "$ref": "#/components/parameters/DatasetCode"
+        }
+      ],
       "get": {
         "operationId": "getDatasetStructure",
-        "tags": ["Datasets"],
+        "tags": [
+          "Datasets"
+        ],
         "responses": {
-          "200": {"description": "Dataset structure", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/StructureResponse"}}}},
-          "401": {"$ref": "#/components/responses/Unauthorized"},
-          "404": {"$ref": "#/components/responses/NotFound"},
-          "500": {"$ref": "#/components/responses/InternalError"},
-          "503": {"$ref": "#/components/responses/Unavailable"}
+          "200": {
+            "description": "Dataset structure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StructureResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
         }
       }
     },
     "/v1/providers/{provider}/datasets/{dataset}/data": {
-      "parameters": [{"$ref": "#/components/parameters/ProviderCode"}, {"$ref": "#/components/parameters/DatasetCode"}, {"$ref": "#/components/parameters/Format"}],
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProviderCode"
+        },
+        {
+          "$ref": "#/components/parameters/DatasetCode"
+        },
+        {
+          "$ref": "#/components/parameters/Format"
+        }
+      ],
       "get": {
         "operationId": "getDatasetData",
-        "tags": ["Observations"],
+        "tags": [
+          "Observations"
+        ],
         "responses": {
-          "200": {"description": "Complete observation cube", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DataResponse"}}}},
-          "400": {"$ref": "#/components/responses/BadRequest"},
-          "401": {"$ref": "#/components/responses/Unauthorized"},
-          "404": {"$ref": "#/components/responses/NotFound"},
-          "500": {"$ref": "#/components/responses/InternalError"},
-          "503": {"$ref": "#/components/responses/Unavailable"}
+          "200": {
+            "description": "Complete observation cube",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
         }
       }
     },
     "/v1/providers/{provider}/datasets/{dataset}/query": {
-      "parameters": [{"$ref": "#/components/parameters/ProviderCode"}, {"$ref": "#/components/parameters/DatasetCode"}, {"$ref": "#/components/parameters/Format"}],
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProviderCode"
+        },
+        {
+          "$ref": "#/components/parameters/DatasetCode"
+        },
+        {
+          "$ref": "#/components/parameters/Format"
+        }
+      ],
       "post": {
         "operationId": "queryDataset",
-        "tags": ["Observations"],
-        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Structure"}, "example": {"id": ["year", "sex"], "dimension": {"year": {"index": {"2025": 0}}, "sex": {"index": {"F": 0, "M": 1}}}}}}},
+        "tags": [
+          "Observations"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Structure"
+              },
+              "example": {
+                "id": [
+                  "year",
+                  "sex"
+                ],
+                "dimension": {
+                  "year": {
+                    "index": {
+                      "2025": 0
+                    }
+                  },
+                  "sex": {
+                    "index": {
+                      "F": 0,
+                      "M": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
-          "200": {"description": "Exact Cartesian subset", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DataResponse"}}}},
-          "400": {"$ref": "#/components/responses/BadRequest"},
-          "401": {"$ref": "#/components/responses/Unauthorized"},
-          "404": {"$ref": "#/components/responses/NotFound"},
-          "413": {"$ref": "#/components/responses/TooLarge"},
-          "415": {"$ref": "#/components/responses/UnsupportedMediaType"},
-          "422": {"$ref": "#/components/responses/ValidationFailed"},
-          "500": {"$ref": "#/components/responses/InternalError"},
-          "503": {"$ref": "#/components/responses/Unavailable"}
+          "200": {
+            "description": "Exact Cartesian subset",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "413": {
+            "$ref": "#/components/responses/TooLarge"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
         }
       }
     }
   },
   "components": {
     "securitySchemes": {
-      "bearerAuth": {"type": "http", "scheme": "bearer"}
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
     },
     "parameters": {
-      "ProviderCode": {"name": "provider", "in": "path", "required": true, "schema": {"type": "string", "minLength": 1, "maxLength": 256}},
-      "DatasetCode": {"name": "dataset", "in": "path", "required": true, "schema": {"type": "string", "minLength": 1, "maxLength": 256}},
-      "Format": {"name": "format", "in": "query", "required": false, "schema": {"type": "string", "enum": ["dense", "sparse"], "default": "sparse"}}
+      "ProviderCode": {
+        "name": "provider",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "DatasetCode": {
+        "name": "dataset",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "Format": {
+        "name": "format",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "dense",
+            "sparse"
+          ],
+          "default": "sparse"
+        }
+      }
     },
     "schemas": {
-      "Health": {"type": "object", "required": ["status"], "properties": {"status": {"type": "string", "enum": ["ok", "unavailable"]}}, "additionalProperties": false},
-      "Provider": {"type": "object", "required": ["provider_code", "dataset_count"], "properties": {"provider_code": {"type": "string"}, "dataset_count": {"type": "integer", "format": "int64", "minimum": 1}}, "additionalProperties": false},
+      "Health": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "unavailable"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "SourceStamp": {
+        "description": "Opaque JSON value supplied by the client. Any JSON value is accepted, including null, and it is returned semantically rather than byte for byte."
+      },
+      "Provider": {
+        "type": "object",
+        "required": [
+          "provider_code",
+          "dataset_count"
+        ],
+        "properties": {
+          "provider_code": {
+            "type": "string"
+          },
+          "dataset_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          }
+        },
+        "additionalProperties": false
+      },
       "DatasetSummary": {
         "type": "object",
-        "required": ["provider_code", "dataset_code", "source_stamp", "cell_count", "valued_cell_count", "null_cell_count", "updated_at"],
+        "description": "Counts and identity for the complete stored dataset.",
+        "required": [
+          "provider_code",
+          "dataset_code",
+          "source_stamp",
+          "cell_count",
+          "valued_cell_count",
+          "null_cell_count",
+          "updated_at"
+        ],
         "properties": {
-          "provider_code": {"type": "string"},
-          "dataset_code": {"type": "string"},
-          "source_stamp": {},
-          "cell_count": {"type": "integer", "format": "int64", "minimum": 1, "maximum": 1000000},
-          "valued_cell_count": {"type": "integer", "format": "int64", "minimum": 0},
-          "null_cell_count": {"type": "integer", "format": "int64", "minimum": 0},
-          "updated_at": {"type": "string", "format": "date-time"}
+          "provider_code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "dataset_code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "source_stamp": {
+            "$ref": "#/components/schemas/SourceStamp"
+          },
+          "cell_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "valued_cell_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "null_cell_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
         },
         "additionalProperties": false
       },
       "Dimension": {
         "type": "object",
-        "required": ["index"],
-        "properties": {"index": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "integer", "minimum": 0}}},
-        "additionalProperties": false
-      },
-      "Structure": {
-        "type": "object",
-        "required": ["id", "dimension"],
+        "required": [
+          "index"
+        ],
         "properties": {
-          "id": {"type": "array", "minItems": 1, "maxItems": 64, "items": {"type": "string"}},
-          "dimension": {"type": "object", "minProperties": 1, "maxProperties": 64, "additionalProperties": {"$ref": "#/components/schemas/Dimension"}}
+          "index": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
         },
         "additionalProperties": false
       },
-      "DenseNumberChannel": {"type": "array", "items": {"type": ["number", "null"], "format": "double"}},
-      "SparseNumberChannel": {"type": "object", "additionalProperties": {"type": "number", "format": "double"}},
-      "DenseStringChannel": {"type": "array", "items": {"type": ["string", "null"]}},
-      "SparseStringChannel": {"type": "object", "additionalProperties": {"type": "string"}},
-      "Replacement": {
-        "allOf": [
-          {"$ref": "#/components/schemas/Structure"},
-          {"type": "object", "required": ["source_stamp", "value"], "properties": {
-            "replace": {"type": "boolean", "default": false},
-            "source_stamp": {},
-            "value": {"oneOf": [{"$ref": "#/components/schemas/DenseNumberChannel"}, {"$ref": "#/components/schemas/SparseNumberChannel"}]},
-            "text": {"oneOf": [{"$ref": "#/components/schemas/DenseStringChannel"}, {"$ref": "#/components/schemas/SparseStringChannel"}]},
-            "status": {"oneOf": [{"type": "string"}, {"$ref": "#/components/schemas/DenseStringChannel"}, {"$ref": "#/components/schemas/SparseStringChannel"}]}
-          }}
+      "DimensionOrder": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 64,
+        "description": "Payload-local dimension order; the last dimension varies fastest.",
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "DimensionMap": {
+        "type": "object",
+        "minProperties": 1,
+        "maxProperties": 64,
+        "additionalProperties": {
+          "$ref": "#/components/schemas/Dimension"
+        }
+      },
+      "Structure": {
+        "type": "object",
+        "description": "Structure-only selector used as the query request body.",
+        "required": [
+          "id",
+          "dimension"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/DimensionOrder"
+          },
+          "dimension": {
+            "$ref": "#/components/schemas/DimensionMap"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DenseNumberChannel": {
+        "type": "array",
+        "items": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        }
+      },
+      "SparseNumberChannel": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "DenseStringChannel": {
+        "type": "array",
+        "items": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "SparseStringChannel": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      },
+      "ValueChannel": {
+        "description": "Required numeric channel. Its representation selects dense or sparse encoding for the whole payload.",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/DenseNumberChannel"
+          },
+          {
+            "$ref": "#/components/schemas/SparseNumberChannel"
+          }
         ]
+      },
+      "TextChannel": {
+        "description": "Optional text channel using the same representation as value.",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/DenseStringChannel"
+          },
+          {
+            "$ref": "#/components/schemas/SparseStringChannel"
+          }
+        ]
+      },
+      "StatusChannel": {
+        "description": "Optional status channel. A single string applies to every logical cell; otherwise it uses the same representation as value.",
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "$ref": "#/components/schemas/DenseStringChannel"
+          },
+          {
+            "$ref": "#/components/schemas/SparseStringChannel"
+          }
+        ]
+      },
+      "Replacement": {
+        "type": "object",
+        "description": "Complete dataset creation or replacement request.",
+        "required": [
+          "source_stamp",
+          "id",
+          "dimension",
+          "value"
+        ],
+        "properties": {
+          "replace": {
+            "type": "boolean",
+            "default": false
+          },
+          "source_stamp": {
+            "$ref": "#/components/schemas/SourceStamp"
+          },
+          "id": {
+            "$ref": "#/components/schemas/DimensionOrder"
+          },
+          "dimension": {
+            "$ref": "#/components/schemas/DimensionMap"
+          },
+          "value": {
+            "$ref": "#/components/schemas/ValueChannel"
+          },
+          "text": {
+            "$ref": "#/components/schemas/TextChannel"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusChannel"
+          }
+        },
+        "additionalProperties": false
       },
       "StructureResponse": {
-        "allOf": [{"$ref": "#/components/schemas/DatasetSummary"}, {"$ref": "#/components/schemas/Structure"}]
+        "type": "object",
+        "description": "Whole-dataset metadata plus the stored structure.",
+        "required": [
+          "provider_code",
+          "dataset_code",
+          "source_stamp",
+          "cell_count",
+          "valued_cell_count",
+          "null_cell_count",
+          "updated_at",
+          "id",
+          "dimension"
+        ],
+        "properties": {
+          "provider_code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "dataset_code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "source_stamp": {
+            "$ref": "#/components/schemas/SourceStamp"
+          },
+          "cell_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "valued_cell_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "null_cell_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "$ref": "#/components/schemas/DimensionOrder"
+          },
+          "dimension": {
+            "$ref": "#/components/schemas/DimensionMap"
+          }
+        },
+        "additionalProperties": false
       },
       "DataResponse": {
-        "allOf": [
-          {"$ref": "#/components/schemas/StructureResponse"},
-          {"type": "object", "required": ["value"], "properties": {
-            "value": {"oneOf": [{"$ref": "#/components/schemas/DenseNumberChannel"}, {"$ref": "#/components/schemas/SparseNumberChannel"}]},
-            "text": {"oneOf": [{"$ref": "#/components/schemas/DenseStringChannel"}, {"$ref": "#/components/schemas/SparseStringChannel"}]},
-            "status": {"oneOf": [{"type": "string"}, {"$ref": "#/components/schemas/DenseStringChannel"}, {"$ref": "#/components/schemas/SparseStringChannel"}]}
-          }}
-        ]
+        "type": "object",
+        "description": "Whole-dataset metadata, the selected structure, and the observation channels. All-null text and status channels are omitted.",
+        "required": [
+          "provider_code",
+          "dataset_code",
+          "source_stamp",
+          "cell_count",
+          "valued_cell_count",
+          "null_cell_count",
+          "updated_at",
+          "id",
+          "dimension",
+          "value"
+        ],
+        "properties": {
+          "provider_code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "dataset_code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "source_stamp": {
+            "$ref": "#/components/schemas/SourceStamp"
+          },
+          "cell_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "valued_cell_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "null_cell_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "$ref": "#/components/schemas/DimensionOrder"
+          },
+          "dimension": {
+            "$ref": "#/components/schemas/DimensionMap"
+          },
+          "value": {
+            "$ref": "#/components/schemas/ValueChannel"
+          },
+          "text": {
+            "$ref": "#/components/schemas/TextChannel"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusChannel"
+          }
+        },
+        "additionalProperties": false
       },
-      "MutationResult": {"type": "object", "required": ["result", "dataset"], "properties": {"result": {"type": "string", "enum": ["created", "replaced"]}, "dataset": {"$ref": "#/components/schemas/DatasetSummary"}}, "additionalProperties": false},
-      "Error": {"type": "object", "required": ["error"], "properties": {"error": {"type": "object", "required": ["code", "message", "request_id"], "properties": {"code": {"type": "string"}, "message": {"type": "string"}, "request_id": {"type": "string"}}, "additionalProperties": false}}, "additionalProperties": false}
+      "MutationResult": {
+        "type": "object",
+        "required": [
+          "result",
+          "dataset"
+        ],
+        "properties": {
+          "result": {
+            "type": "string",
+            "enum": [
+              "created",
+              "replaced"
+            ]
+          },
+          "dataset": {
+            "$ref": "#/components/schemas/DatasetSummary"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "request_id"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "request_id": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
     },
     "responses": {
-      "BadRequest": {"description": "Malformed JSON, path, or query", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
-      "Unauthorized": {"description": "Missing or invalid bearer token", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
-      "Forbidden": {"description": "Read-only credential used for mutation", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
-      "NotFound": {"description": "Provider or dataset not found", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
-      "Conflict": {"description": "Dataset already exists", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
-      "TooLarge": {"description": "Request body exceeds configured limit", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
-      "UnsupportedMediaType": {"description": "Unsupported JSON media type or content encoding", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
-      "ValidationFailed": {"description": "Dataset or selection violates semantic rules", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
-      "InternalError": {"description": "Unexpected internal failure", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
-      "Unavailable": {"description": "Database unavailable or operation deadline exceeded", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}
+      "BadRequest": {
+        "description": "Malformed JSON, path, or query",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing or invalid bearer token",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Read-only credential used for mutation",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Provider or dataset not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Dataset already exists",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "TooLarge": {
+        "description": "Request body exceeds configured limit",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "UnsupportedMediaType": {
+        "description": "Unsupported JSON media type or content encoding",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "ValidationFailed": {
+        "description": "Dataset or selection violates semantic rules",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "InternalError": {
+        "description": "Unexpected internal failure",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "MethodNotAllowed": {
+        "description": "Unsupported method for this route",
+        "headers": {
+          "Allow": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Unavailable": {
+        "description": "Database unavailable or operation deadline exceeded",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
     }
   },
-  "security": [{"bearerAuth": []}]
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
 }

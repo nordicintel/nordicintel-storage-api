@@ -348,9 +348,18 @@ func parseStatusChannel(raw json.RawMessage, count int64, representation channel
 	return values, nil, err
 }
 
+// parseSparseIndex accepts only the canonical base-10 spelling of a
+// non-negative index inside the cube. Signs, leading zeros, whitespace, and any
+// other spelling strconv would tolerate are rejected so that one logical cell
+// can never be addressed by two different keys in the same payload.
 func parseSparseIndex(key string, count int64) (int64, error) {
-	if key == "" || (len(key) > 1 && key[0] == '0') || key[0] == '-' {
+	if key == "" || (len(key) > 1 && key[0] == '0') {
 		return 0, fmt.Errorf("sparse index %q is not canonical", key)
+	}
+	for i := 0; i < len(key); i++ {
+		if key[i] < '0' || key[i] > '9' {
+			return 0, fmt.Errorf("sparse index %q is not canonical", key)
+		}
 	}
 	index, err := strconv.ParseInt(key, 10, 64)
 	if err != nil || index < 0 || index >= count {

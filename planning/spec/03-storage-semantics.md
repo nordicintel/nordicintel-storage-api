@@ -4,12 +4,25 @@ This document defines the storage invariants and transaction behavior behind the
 
 ## Identity and Normalization
 
-Codes are normalized in Go in this exact order:
+Codes are normalized in Go by applying this exact round:
 
 1. Trim leading and trailing Unicode whitespace.
 2. Apply Unicode NFKC normalization.
 3. Apply Unicode default case folding.
 4. Apply Unicode NFKC normalization again.
+5. Trim leading and trailing Unicode whitespace again.
+
+The round is repeated until it stops changing the value, for at most eight
+rounds. A code that has not converged after eight rounds is invalid.
+
+Repetition is required because a single round is not a fixed point. Compatibility
+decomposition can introduce surrounding whitespace that the leading trim has
+already passed - `U+00B8 CEDILLA`, for example, decomposes to a space followed by
+`U+0327 COMBINING CEDILLA` - and case folding can produce characters that
+decompose further. Without the repetition the normalized key of a normalized key
+could differ from the key itself, so the same logical code could be stored under
+two different identities. The bound keeps normalization terminating and
+deterministic for every input.
 
 The service stores the result in explicit normalized-key columns. PostgreSQL compares and sorts those columns bytewise with `COLLATE "C"`; it does not independently recreate Unicode normalization. The Unicode normalization dependency and data version must remain pinned. Changing either the algorithm or Unicode data requires a migration that recalculates every stored key and checks for new collisions.
 

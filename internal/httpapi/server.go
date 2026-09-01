@@ -110,17 +110,51 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(recorder, r)
 }
 
+// Route describes one registered path template and the methods it accepts.
+// Tests compare this table against the OpenAPI document so the contract, the
+// documentation, and the multiplexer can never drift apart.
+type Route struct {
+	Pattern string
+	Methods []string
+	Public  bool
+}
+
+// Routes returns the complete registered route table in registration order.
+func Routes() []Route {
+	return []Route{
+		{Pattern: "/health", Methods: []string{http.MethodGet}, Public: true},
+		{Pattern: "/openapi.json", Methods: []string{http.MethodGet}, Public: true},
+		{Pattern: "/docs", Methods: []string{http.MethodGet}, Public: true},
+		{Pattern: "/docs/", Methods: []string{http.MethodGet}, Public: true},
+		{Pattern: "/v1/providers", Methods: []string{http.MethodGet}},
+		{Pattern: "/v1/providers/{provider}/datasets", Methods: []string{http.MethodGet}},
+		{Pattern: "/v1/providers/{provider}/datasets/{dataset}", Methods: []string{http.MethodGet, http.MethodPost, http.MethodDelete}},
+		{Pattern: "/v1/providers/{provider}/datasets/{dataset}/structure", Methods: []string{http.MethodGet}},
+		{Pattern: "/v1/providers/{provider}/datasets/{dataset}/data", Methods: []string{http.MethodGet}},
+		{Pattern: "/v1/providers/{provider}/datasets/{dataset}/query", Methods: []string{http.MethodPost}},
+	}
+}
+
 func (s *Server) routes() {
-	s.mux.HandleFunc("/health", s.handleHealth)
-	s.mux.HandleFunc("/openapi.json", s.handleOpenAPI)
-	s.mux.HandleFunc("/docs", s.handleDocsRedirect)
-	s.mux.Handle("/docs/", http.HandlerFunc(s.handleDocs))
-	s.mux.HandleFunc("/v1/providers", s.handleProviders)
-	s.mux.HandleFunc("/v1/providers/{provider}/datasets", s.handleDatasets)
-	s.mux.HandleFunc("/v1/providers/{provider}/datasets/{dataset}", s.handleDataset)
-	s.mux.HandleFunc("/v1/providers/{provider}/datasets/{dataset}/structure", s.handleStructure)
-	s.mux.HandleFunc("/v1/providers/{provider}/datasets/{dataset}/data", s.handleData)
-	s.mux.HandleFunc("/v1/providers/{provider}/datasets/{dataset}/query", s.handleQuery)
+	handlers := map[string]http.HandlerFunc{
+		"/health":                           s.handleHealth,
+		"/openapi.json":                     s.handleOpenAPI,
+		"/docs":                             s.handleDocsRedirect,
+		"/docs/":                            s.handleDocs,
+		"/v1/providers":                     s.handleProviders,
+		"/v1/providers/{provider}/datasets": s.handleDatasets,
+		"/v1/providers/{provider}/datasets/{dataset}":           s.handleDataset,
+		"/v1/providers/{provider}/datasets/{dataset}/structure": s.handleStructure,
+		"/v1/providers/{provider}/datasets/{dataset}/data":      s.handleData,
+		"/v1/providers/{provider}/datasets/{dataset}/query":     s.handleQuery,
+	}
+	for _, route := range Routes() {
+		handler, registered := handlers[route.Pattern]
+		if !registered {
+			panic("no handler registered for " + route.Pattern)
+		}
+		s.mux.HandleFunc(route.Pattern, handler)
+	}
 	s.mux.HandleFunc("/", s.handleNotFound)
 }
 
@@ -160,6 +194,9 @@ func (s *Server) handleProviders(w http.ResponseWriter, r *http.Request) {
 		s.writeStoreError(w, r, err)
 		return
 	}
+	if providers == nil {
+		providers = []domain.ProviderListItem{}
+	}
 	s.writeJSON(w, http.StatusOK, map[string]any{"providers": providers})
 }
 
@@ -188,6 +225,9 @@ func (s *Server) handleDatasets(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.writeStoreError(w, r, err)
 		return
+	}
+	if datasets == nil {
+		datasets = []domain.Summary{}
 	}
 	s.writeJSON(w, http.StatusOK, map[string]any{"provider_code": spelling, "datasets": datasets})
 }
@@ -385,11 +425,11 @@ func (s *Server) handleQuery(w http.ResponseWriter, r *http.Request) {
 	}
 	selection, err := domain.ParseSelection(body)
 	if err != nil {
-		code := "invalid_query"
 		if errors.Is(err, domain.ErrInvalidJSON) {
-			code = "invalid_json"
+			s.writeError(w, r, http.StatusBadRequest, "invalid_json", err.Error())
+			return
 		}
-		s.writeError(w, r, http.StatusBadRequest, code, err.Error())
+		s.writeError(w, r, http.StatusUnprocessableEntity, "validation_failed", err.Error())
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), s.dbTimeout)
@@ -585,8 +625,8 @@ func (s *Server) writeStoreError(w http.ResponseWriter, r *http.Request, err err
 		s.writeError(w, r, http.StatusNotFound, "not_found", "provider or dataset not found")
 	case errors.Is(err, store.ErrDatasetExists):
 		s.writeError(w, r, http.StatusConflict, "dataset_exists", "dataset already exists; set replace to true to overwrite it")
-	case errors.Is(err, context.DeadlineExceeded) || errors.Is(r.Context().Err(), context.DeadlineExceeded):
-		s.writeError(w, r, http.StatusServiceUnavailable, "service_unavailable", "operation deadline exceeded")
+	case errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) || r.Context().Err() != nil:
+		s.writeError(w, r, http.StatusServiceUnavailable, "service_unavailable", "operation deadline exceeded or request cancelled")
 	default:
 		s.logger.Error("database operation failed", "request_id", requestStateFrom(r).requestID, "route", requestStateFrom(r).route, "error", err)
 		s.writeError(w, r, http.StatusInternalServerError, "internal_error", "unexpected internal failure")

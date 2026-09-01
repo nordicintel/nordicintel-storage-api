@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sort"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -544,13 +543,4 @@ func (p *Postgres) checkpoint(ctx context.Context, selectCheckpoint func(*transa
 		return nil
 	}
 	return checkpoint(ctx)
-}
-
-func sortedCells(cells map[int64]domain.Cell) []domain.Cell {
-	result := make([]domain.Cell, 0, len(cells))
-	for _, cell := range cells {
-		result = append(result, cell)
-	}
-	sort.Slice(result, func(i, j int) bool { return result[i].Index < result[j].Index })
-	return result
 }

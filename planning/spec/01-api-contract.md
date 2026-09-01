@@ -171,7 +171,8 @@ The dimension and category indexes are unique, zero-based, contiguous, and defin
 
 ## Validation and Identity
 
-- Codes match after trimming surrounding Unicode whitespace, Unicode NFKC normalization, and Unicode case folding.
+- Codes match after trimming surrounding Unicode whitespace, Unicode NFKC normalization, and Unicode case folding,
+  repeated until the result stops changing. Codes that do not converge within eight rounds are invalid.
 - Empty normalized codes and normalized duplicates are invalid.
 - Provider and dataset response spelling is preserved from first creation; each replacement supplies the current stored spelling for dimensions and categories.
 - Retained provider spelling survives deletion of its last dataset. A deleted and later recreated dataset establishes a new first-creation spelling.
