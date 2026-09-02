@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/jackc/tern/v2 v2.4.3
-	github.com/swaggest/swgui v1.8.1
+	github.com/swaggest/swgui v1.8.9
 	golang.org/x/text v0.41.0
 )
 
