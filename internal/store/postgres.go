@@ -298,11 +298,14 @@ func (p *Postgres) Replace(ctx context.Context, replacement domain.Replacement) 
 		`, datasetID, dimension.Code.Spelling, dimension.Code.Key, dimension.Position).Scan(&dimensionID); err != nil {
 			return "", domain.Summary{}, err
 		}
-		for _, category := range dimension.Categories {
-			if _, err := tx.Exec(ctx, `
-				insert into storage.categories(dimension_id, category_code, category_key, position)
-				values ($1, $2, $3, $4)
-			`, dimensionID, category.Code.Spelling, category.Code.Key, category.Position); err != nil {
+		if len(dimension.Categories) > 0 {
+			_, err := tx.CopyFrom(ctx, pgx.Identifier{"storage", "categories"},
+				[]string{"dimension_id", "category_code", "category_key", "position"},
+				pgx.CopyFromSlice(len(dimension.Categories), func(i int) ([]any, error) {
+					category := dimension.Categories[i]
+					return []any{dimensionID, category.Code.Spelling, category.Code.Key, category.Position}, nil
+				}))
+			if err != nil {
 				return "", domain.Summary{}, err
 			}
 		}
