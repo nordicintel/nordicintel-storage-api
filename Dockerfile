@@ -5,7 +5,7 @@
 #
 # Both images are pinned by digest so a rebuild of a released commit produces
 # the same runtime. Update the digests deliberately, never implicitly.
-FROM --platform=$BUILDPLATFORM golang:1.27@sha256:4013ae0f9e7994f8535c58c811f8f863fbed38b72e0d51e6592156f758d66146 AS build
+FROM --platform=$BUILDPLATFORM golang:1.27@sha256:7543a96ce82c8e9003cae079ee3e0bc5b7799df8eed2a041e403af0d31fa4e67 AS build
 
 WORKDIR /src
 
