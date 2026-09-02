@@ -2,10 +2,12 @@ package domain
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"strconv"
 
@@ -431,24 +433,51 @@ func remapReplacement(dimensions []requestDimension, requestCells map[int64]Cell
 		if requestIndex < 0 || requestIndex >= cellCount {
 			return nil, nil, fmt.Errorf("cell index %d is outside the cube", requestIndex)
 		}
-		requestCoordinates, err := Coordinates(requestIndex, requestSizes, requestStrides)
-		if err != nil {
-			return nil, nil, err
-		}
-		storedCoordinates := make([]int, len(stored))
-		for requestDimensionPosition, coordinate := range requestCoordinates {
-			dimension := dimensions[requestDimensionPosition]
-			storedDimensionPosition := dimensionPosition[dimension.code.Key]
-			category := dimension.categories[coordinate]
-			storedCoordinates[storedDimensionPosition] = categoryPositions[dimension.code.Key][category.Key]
-		}
-		storedIndex, err := CellIndex(storedCoordinates, storedSizes, storedStrides)
+		storedIndex, err := remapCellIndex(requestIndex, dimensions, requestSizes, requestStrides,
+			storedSizes, storedStrides, dimensionPosition, categoryPositions)
 		if err != nil {
 			return nil, nil, err
 		}
 		cell.Index = storedIndex
 		cells = append(cells, cell)
 	}
-	sort.Slice(cells, func(i, j int) bool { return cells[i].Index < cells[j].Index })
+	slices.SortFunc(cells, func(a, b Cell) int { return cmp.Compare(a.Index, b.Index) })
 	return stored, cells, nil
+}
+
+// remapCellIndex decomposes requestIndex into its per-dimension coordinates
+// (in request-dimension order) and recomposes them into the stored dimension
+// order's flat index in a single pass. This is equivalent to calling
+// Coordinates followed by CellIndex, but those each allocate a fresh []int;
+// at a million cells that allocation was measurable, so the hot path here
+// carries no coordinate slice at all, only scalar loop state.
+func remapCellIndex(
+	requestIndex int64,
+	dimensions []requestDimension,
+	requestSizes []int,
+	requestStrides []int64,
+	storedSizes []int,
+	storedStrides []int64,
+	dimensionPosition map[string]int,
+	categoryPositions map[string]map[string]int,
+) (int64, error) {
+	remaining := requestIndex
+	var storedIndex int64
+	for requestDimensionPosition, stride := range requestStrides {
+		if remaining < 0 || stride < 1 {
+			return 0, fmt.Errorf("index is outside the cube")
+		}
+		coordinate := int(remaining / stride)
+		if coordinate >= requestSizes[requestDimensionPosition] {
+			return 0, fmt.Errorf("index is outside the cube")
+		}
+		remaining %= stride
+
+		dimension := dimensions[requestDimensionPosition]
+		storedDimensionPosition := dimensionPosition[dimension.code.Key]
+		category := dimension.categories[coordinate]
+		storedPosition := categoryPositions[dimension.code.Key][category.Key]
+		storedIndex += int64(storedPosition) * storedStrides[storedDimensionPosition]
+	}
+	return storedIndex, nil
 }
