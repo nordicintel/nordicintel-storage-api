@@ -3,10 +3,10 @@ module github.com/nordicintel/nordicintel-storage-api
 go 1.27.0
 
 require (
-	github.com/jackc/pgx/v5 v5.10.0
+	github.com/jackc/pgx/v5 v5.11.0
 	github.com/jackc/tern/v2 v2.4.3
-	github.com/swaggest/swgui v1.8.1
-	golang.org/x/text v0.41.0
+	github.com/swaggest/swgui v1.8.9
+	golang.org/x/text v0.42.0
 )
 
 require (
@@ -25,5 +25,5 @@ require (
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/vearutop/statigz v1.4.0 // indirect
 	golang.org/x/crypto v0.55.0 // indirect
-	golang.org/x/sync v0.22.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
 )
